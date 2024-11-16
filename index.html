@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accessible To-Do List</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Global Styles */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        /* Toggle Switch Styles */
+        .settings {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.4s;
+            border-radius: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 5px;
+        }
+
+        .slider .sun-icon, .slider .moon-icon {
+            color: white;
+            font-size: 16px;
+            transition: opacity 0.3s;
+        }
+
+        .slider .moon-icon {
+            opacity: 0;
+        }
+
+        input:checked + .slider {
+            background-color: #2196F3;
+        }
+
+        input:checked + .slider .sun-icon {
+            opacity: 0;
+        }
+
+        input:checked + .slider .moon-icon {
+            opacity: 1;
+        }
+
+        /* Talkback Checkbox */
+        .talkback-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1em;
+            cursor: pointer;
+        }
+
+        /* Dark Mode Styles */
+        body.dark-mode {
+            background-color: #121212;
+            color: #ffffff;
+        }
+
+        .container.dark-mode {
+            background-color: #1e1e1e;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            background: #e0e0e0;
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        #progress-bar {
+            height: 20px;
+            background: #76c7c0;
+            width: 0;
+            transition: width 0.3s;
+        }
+
+        #progress-text {
+            text-align: center;
+            margin: 5px 0;
+        }
+
+        #task-count {
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        /* Form Styles */
+        form {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        form input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+
+        form button {
+            padding: 10px 15px;
+            border: none;
+            background: #76c7c0;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        form button:hover {
+            background: #5ba8a0;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #ccc;
+        }
+
+        li:last-child {
+            border-bottom: none;
+        }
+
+        .delete-icon {
+            color: #ff6b6b;
+            cursor: pointer;
+        }
+
+        .delete-icon:hover {
+            color: #ff4d4d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Accessible To-Do List</h1>
+
+        <div class="settings">
+            <!-- Dark Mode Toggle -->
+            <label class="switch">
+                <input type="checkbox" id="theme-toggle">
+                <span class="slider">
+                    <i class="fas fa-sun sun-icon"></i>
+                    <i class="fas fa-moon moon-icon"></i>
+                </span>
+            </label>
+
+            <!-- Talkback Toggle -->
+            <label class="talkback-checkbox">
+                <input type="checkbox" id="talkback-toggle">
+                Enable Talkback
+            </label>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-container">
+            <div id="progress-bar"></div>
+            <div id="progress-text">0%</div>
+        </div>
+
+        <div id="task-count">0 out of 0 tasks completed</div>
+
+        <form id="task-form">
+            <input type="text" id="task-input" placeholder="Add a new task..." required>
+            <button type="submit">Add Task</button>
+        </form>
+
+        <ul id="task-list"></ul>
+    </div>
+
+    <script>
+        // JavaScript Code
+        const themeToggle = document.getElementById('theme-toggle');
+        const talkbackToggle = document.getElementById('talkback-toggle');
+        const taskForm = document.getElementById('task-form');
+        const taskInput = document.getElementById('task-input');
+        const taskList = document.getElementById('task-list');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        const taskCount = document.getElementById('task-count');
+
+        let tasks = [];
+
+        // Function for Talkback
+        function speak(text) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            speechSynthesis.speak(utterance);
+        }
+
+        // Talkback announcements
+        function announceProgress() {
+            if (talkbackToggle.checked) {
+                const completedTasks = tasks.filter(task => task.completed).length;
+                const progress = Math.round((completedTasks / tasks.length) * 100) || 0;
+                speak(`You have completed ${completedTasks} out of ${tasks.length} tasks. Progress is ${progress}%`);
+            }
+        }
+
+        // Toggle Dark Mode
+        themeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            document.querySelector('.container').classList.toggle('dark-mode');
+        });
+
+        // Add task submission event
+        taskForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const task = taskInput.value.trim();
+            if (task) {
+                tasks.push({ text: task, completed: false });
+                taskInput.value = '';
+                renderTaskList();
+                if (talkbackToggle.checked) {
+                    speak(`Task added: ${task}`);
+                }
+            }
+        });
+
+        // Render task list
+        function renderTaskList() {
+            taskList.innerHTML = '';
+            tasks.forEach((task, index) => {
+                const taskElement = document.createElement('li');
+                taskElement.innerHTML = `
+                    <div>
+                        <input type="checkbox" ${task.completed ? 'checked' : ''} data-index="${index}">
+                        <span>${task.text}</span>
+                    </div>
+                    <i class="fas fa-trash delete-icon" data-index="${index}"></i>
+                `;
+                taskList.appendChild(taskElement);
+            });
+            updateProgressBar();
+        }
+
+        // Update progress bar
+        function updateProgressBar() {
+            const completedTasks = tasks.filter(task => task.completed).length;
+            const progress = (completedTasks / tasks.length) * 100;
+            progressBar.style.width = `${progress}%`;
+            progressText.textContent = `${Math.round(progress)}%`;
+            taskCount.textContent = `${completedTasks} out of ${tasks.length} tasks completed`;
+            announceProgress();
+        }
+
+        // Task list item interactions
+        taskList.addEventListener('click', (e) => {
+            const taskIndex = e.target.dataset.index;
+            if (e.target.type === 'checkbox') {
+                tasks[taskIndex].completed = e.target.checked;
+                renderTaskList();
+                if (talkbackToggle.checked) {
+                    speak(`Task ${e.target.checked ? 'completed' : 'uncompleted'}: ${tasks[taskIndex].text}`);
+                }
+            } else if (e.target.classList.contains('delete-icon')) {
+                speak(`Task deleted: ${tasks[taskIndex].text}`);
+                tasks.splice(taskIndex, 1);
+                renderTaskList();
+            }
+        });
+
+        // Initial render
+        renderTaskList();
+    </script>
+</body>
+</html>
